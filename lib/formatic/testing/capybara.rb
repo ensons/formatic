@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 require 'json'
-require 'nokogiri'
-require 'capybara/rack_test'
 
 module Formatic
   module Testing
@@ -27,6 +25,7 @@ module Formatic
         private
 
         def ensure_rack_test_driver!
+          require 'capybara/rack_test/driver'
           return if page.driver.is_a?(::Capybara::RackTest::Driver)
 
           raise ArgumentError, 'custom_select requires Capybara RackTest'
@@ -69,14 +68,8 @@ module Formatic
 
         def matching_record(records, query)
           records.find do |record|
-            record_label(record).downcase.include?(query.to_s.downcase)
+            record.fetch('label').to_s.downcase.include?(query.to_s.downcase)
           end
-        end
-
-        def record_label(record)
-          return record['label'].to_s if record['label'].present?
-
-          ::Nokogiri::HTML.fragment(record['html_for_autocomplete'].to_s).text.squish
         end
       end
     end
