@@ -43,5 +43,18 @@ module Formatic
 
       assert_equal 'Scooby', output.at_css('[data-formatic-search-record]').text.strip
     end
+
+    test 'renders every action' do
+      f = TestFormBuilder.for(CommanderModel.new)
+      component = Formatic::Search.new(f:, attribute_name: :commander_id, url: '/commanders.json')
+      component.with_action { 'Keiner' }
+      component.with_action { 'Other action' }
+
+      output = render_inline(component)
+
+      actions = output.at_css('.c-formatic-search__actions').text
+      assert_includes actions, 'Keiner'
+      assert_includes actions, 'Other action'
+    end
   end
 end

@@ -30,7 +30,9 @@
                                      data: { formatic_search_query: true } %>
         <% if actions? %>
           <div class="c-formatic-search__actions">
-            <%= actions %>
+            <% actions.each do |action| %>
+              <%= action %>
+            <% end %>
           </div>
         <% end %>
       </div>
