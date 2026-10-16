@@ -3,5 +3,5 @@
 # Exit if any command fails
 set -e
 
-bundle exec rake test
+bundle exec megatest run
 bundle exec rubocop --color

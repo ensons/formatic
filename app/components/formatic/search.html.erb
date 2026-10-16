@@ -1,0 +1,47 @@
+<%= render wrapper do |formatic_wrapper| %>
+  <% formatic_wrapper.with_input do %>
+    <div class="c-formatic-search js-formatic-search"
+         data-formatic-search="true"
+         data-url="<%= url %>"
+         data-record-name="<%= record_name %>"
+         data-attribute-name="<%= attribute_name %>"
+         data-exclude-ids="<%= exclude_ids.join(',') %>"
+         data-formatic-search-submit-on-click="<%= submit_on_click %>"
+         data-formatic-search-minimum-query-length="<%= minimum_query_length %>"
+         data-formatic-search-scanner="<%= scanner? %>"
+         data-test-mode="<%= test_mode %>">
+      <%= f.hidden_field attribute_name,
+                         id: value_input_id,
+                         value:,
+                         data: { formatic_search_value: true } %>
+
+      <div class="c-formatic-search__selected" data-formatic-search-record>
+        <%= selected_record %>
+      </div>
+
+      <div class="c-formatic-search__query">
+        <%= helpers.search_field_tag query_input_id,
+                                     nil,
+                                     id: query_input_id,
+                                     placeholder: search_placeholder,
+                                     autocomplete: 'off',
+                                     role: 'combobox',
+                                     aria: { autocomplete: 'list', controls: results_id, expanded: false },
+                                     data: { formatic_search_query: true } %>
+        <% if actions? %>
+          <div class="c-formatic-search__actions">
+            <%= actions %>
+          </div>
+        <% end %>
+      </div>
+
+      <div id="<%= results_id %>"
+           class="c-formatic-search__results"
+           data-formatic-search-results
+           role="listbox"
+           aria-live="polite"></div>
+
+      <%= scanner %>
+    </div>
+  <% end %>
+<% end %>

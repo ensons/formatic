@@ -159,6 +159,28 @@
   background-size: 200% 200%;
 }
 
+.c-formatic-search {
+  display: grid;
+  grid-template-columns: auto;
+  gap: 0.4rem;
+}
+.c-formatic-search__query {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+.c-formatic-search__query input {
+  flex-grow: 1;
+  min-width: 0;
+}
+.c-formatic-search__selected, .c-formatic-search__results, .c-formatic-search__actions {
+  display: grid;
+  gap: 0.2rem;
+}
+.c-formatic-search__results:empty {
+  display: none;
+}
+
 .c-formatic-wrapper.is-required .c-formatic-select {
   border-left-color: rgb(240, 30, 80);
   border-left-width: 2px;
