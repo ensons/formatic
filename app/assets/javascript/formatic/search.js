@@ -66,9 +66,9 @@ export class Search {
     clearTimeout(this.timeoutId)
 
     const query = this.queryInput.value.trim()
+    this.updateAddRecord(false)
     if (!query) {
       this.resultsContainer.replaceChildren()
-      this.updateAddRecord(false)
       return
     }
 
@@ -133,7 +133,7 @@ export class Search {
     })
 
     if (records.length === 0) this.resultsContainer.textContent = 'Nichts gefunden.'
-    this.updateAddRecord(records.length > 0)
+    this.updateAddRecord(true)
     this.queryInput.setAttribute('aria-expanded', String(records.length > 0))
   }
 
@@ -184,7 +184,7 @@ export class Search {
   }
 
   updateAddRecord(visible) {
-    this.addRecordLink?.classList.toggle('is-hidden', !visible)
+    if (this.addRecordLink) this.addRecordLink.hidden = !visible
   }
 
   get queryInput() {

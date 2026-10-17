@@ -43,6 +43,12 @@
            role="listbox"
            aria-live="polite"></div>
 
+      <% if add_record? %>
+        <div class="c-formatic-search__add-record" data-formatic-search-add-record hidden>
+          <%= add_record %>
+        </div>
+      <% end %>
+
       <%= scanner %>
     </div>
   <% end %>

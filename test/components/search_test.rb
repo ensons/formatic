@@ -56,5 +56,17 @@ module Formatic
       assert_includes actions, 'Keiner'
       assert_includes actions, 'Other action'
     end
+
+    test 'renders add-record content hidden until search completes' do
+      f = TestFormBuilder.for(CommanderModel.new)
+      component = Formatic::Search.new(f:, attribute_name: :commander_id, url: '/commanders.json')
+      component.with_add_record { 'New record' }
+
+      output = render_inline(component)
+      add_record = output.at_css('[data-formatic-search-add-record]')
+
+      refute_nil add_record['hidden']
+      assert_equal 'New record', add_record.text.strip
+    end
   end
 end

@@ -14,6 +14,7 @@ module Formatic
     renders_one :selected_record
     renders_many :actions
     renders_one :scanner
+    renders_one :add_record
 
     def record_name
       manual_record_name.presence || param_key

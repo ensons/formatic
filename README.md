@@ -14,7 +14,9 @@ Opinionated ViewComponents for building forms.
 `Formatic::Search` renders a hidden value input and a query input for an endpoint
 that returns JSON records. Each record should have an `id` and `label`; optional
 `html_for_autocomplete` and `html_for_input` properties let the application
-render its own result and selected-record markup.
+render its own result and selected-record markup. An optional `with_add_record`
+slot stays hidden while searching and appears after a successful response, even
+when there are no matches.
 
 ```ruby
 = render Formatic::Search.new(f:, attribute_name: :commander_id,
