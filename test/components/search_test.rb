@@ -29,6 +29,8 @@ module Formatic
       assert_equal 'commander_id', output.at_css('.js-formatic-search__attribute-name')['value']
       assert_equal 'excluded-id', output.at_css('.js-formatic-search__exclude-ids')['value']
       assert_equal f.field_id(:commander_id), query['id']
+      assert_equal 'input', query.name
+      assert_equal 'search', query['type']
       assert_equal 'commander_id', value['name']
       assert_nil value['id']
     end

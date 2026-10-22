@@ -23,10 +23,11 @@ module Formatic
               </div>
 
               <div class="c-formatic-search__query">
-                <%= helpers.tag.search_field id: query_input_id,
-                                              placeholder: search_placeholder,
-                                              autocomplete: 'off',
-                                              class: 'js-formatic-search__query-input' %>
+                <%= helpers.tag.input type: 'search',
+                                      id: query_input_id,
+                                      placeholder: search_placeholder,
+                                      autocomplete: 'off',
+                                      class: 'js-formatic-search__query-input' %>
                 <% if clear? %>
                   <div class="c-formatic-search__clear js-formatic-search__clear">
                     <%= clear %>
