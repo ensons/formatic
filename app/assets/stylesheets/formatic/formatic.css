@@ -173,11 +173,14 @@
   flex-grow: 1;
   min-width: 0;
 }
-.c-formatic-search__selected, .c-formatic-search__results, .c-formatic-search__actions {
+.c-formatic-search__selected, .c-formatic-search__results, .c-formatic-search__clear {
   display: grid;
   gap: 0.2rem;
 }
 .c-formatic-search__results:empty {
+  display: none;
+}
+.c-formatic-search__add-record:empty {
   display: none;
 }
 

@@ -12,21 +12,25 @@ Opinionated ViewComponents for building forms.
 ### Search fields
 
 `Formatic::Search` renders a hidden value input and a query input for an endpoint
-that returns JSON records. Each record should have an `id` and `label`; optional
-`html_for_autocomplete` and `html_for_input` properties let the application
-render its own result and selected-record markup. An optional `with_add_record`
-slot stays hidden while searching and appears after a successful response, even
-when there are no matches.
+that returns JSON in the form `{ records: [...] }`. Each record has an `id`, a
+`label`, `html_for_autocomplete`, and `html_for_input` properties. The
+`html_for_autocomplete` markup must include a `.js-formatic-search__choice`
+element with a `data-record-id`; `html_for_input` provides the selected-value
+markup. Search waits 400 ms after input and cancels an in-flight request when
+the query changes. An optional `with_clear` slot clears the current selection.
+An optional `with_add_record` slot stays hidden while searching and appears
+after a successful response, even when there are no matches.
 
 ```ruby
 = render Formatic::Search.new(f:, attribute_name: :commander_id,
+                              record_name: 'commander',
                               url: admin_commanders_path(format: :json))
 ```
 
 For Rack tests, include `Formatic::Testing::Capybara::Search` in a
-`Capybara::RackTest` test class. `custom_select 'Bob', from: 'Users'` reads the
-field's URL and parameter names, requests matching JSON directly, and fills the
-hidden input with a result returned by that endpoint.
+`Capybara::RackTest` test class. `select_record_from_search 'Bob', from: 'Users'`
+reads the field's URL and parameter names, requests matching JSON directly, and
+fills the hidden input with a result returned by that endpoint.
 
 ## Installation
 

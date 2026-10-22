@@ -8,9 +8,7 @@ import { Toggle } from 'formatic/toggle'
 import { FormaticFile } from 'formatic/file'
 
 document.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('[data-formatic-search="true"]').forEach((el) => {
-    if (el.dataset.formaticSearchInitialized) return
-    el.dataset.formaticSearchInitialized = 'true'
+  document.querySelectorAll('.js-formatic-search').forEach((el) => {
     new Search(el)
   })
 
