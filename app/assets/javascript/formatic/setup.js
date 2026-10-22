@@ -9,6 +9,7 @@ import { FormaticFile } from 'formatic/file'
 
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.js-formatic-search').forEach((el) => {
+    console.debug('[Formatic] Instantiating Search...')
     new Search(el)
   })
 

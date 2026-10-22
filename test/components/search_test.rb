@@ -21,14 +21,13 @@ module Formatic
       )
 
       output = render_inline(component)
-      search = output.at_css('.js-formatic-search')
       query = output.at_css('.js-formatic-search__query-input')
       value = output.at_css('.js-formatic-search__value')
 
-      assert_equal '/admin/commanders.json', search['data-url']
-      assert_equal 'commander_model', search['data-record-name']
-      assert_equal 'commander_id', search['data-attribute-name']
-      assert_equal 'excluded-id', search['data-exclude-ids']
+      assert_equal '/admin/commanders.json', output.at_css('.js-formatic-search__resource')['value']
+      assert_equal 'commander_model', output.at_css('.js-formatic-search__record-name')['value']
+      assert_equal 'commander_id', output.at_css('.js-formatic-search__attribute-name')['value']
+      assert_equal 'excluded-id', output.at_css('.js-formatic-search__exclude-ids')['value']
       assert_equal f.field_id(:commander_id), query['id']
       assert_equal 'commander_id', value['name']
       assert_nil value['id']

@@ -46,16 +46,24 @@ module Formatic
           end
 
           def search_records(component)
-            response = search_request(component['data-url'], {
-              query: query,
-              record_name: component['data-record-name'],
-              attribute_name: component['data-attribute-name'],
-              exclude_ids: component['data-exclude-ids']
-            })
+            response = search_request(configured_value(component, 'resource'), search_params(component))
 
             raise SelectionError, "Search for #{from.inspect} returned HTTP #{response.status}" unless response.ok?
 
             JSON.parse(response.body).fetch('records')
+          end
+
+          def search_params(component)
+            {
+              query: query,
+              record_name: configured_value(component, 'record-name'),
+              attribute_name: configured_value(component, 'attribute-name'),
+              exclude_ids: configured_value(component, 'exclude-ids')
+            }
+          end
+
+          def configured_value(component, class_suffix)
+            component.find(".js-formatic-search__#{class_suffix}", visible: :all).value
           end
 
           def search_request(url, params)

@@ -7,11 +7,12 @@ module Formatic
       TEMPLATE = <<~ERB
         <%= render wrapper do |formatic_wrapper| %>
           <% formatic_wrapper.with_input do %>
-            <div class="c-formatic-search js-formatic-search"
-                 data-url="<%= url %>"
-                 data-record-name="<%= record_name %>"
-                 data-attribute-name="<%= attribute_name %>"
-                 data-exclude-ids="<%= exclude_ids.join(',') %>">
+            <div class="c-formatic-search js-formatic-search">
+              <input type="hidden" class="js-formatic-search__resource" value="<%= url %>">
+              <input type="hidden" class="js-formatic-search__record-name" value="<%= record_name %>">
+              <input type="hidden" class="js-formatic-search__attribute-name" value="<%= attribute_name %>">
+              <input type="hidden" class="js-formatic-search__exclude-ids" value="<%= exclude_ids.join(',') %>">
+
               <%= f.hidden_field attribute_name,
                                  id: nil,
                                  value:,
@@ -27,7 +28,7 @@ module Formatic
                                               autocomplete: 'off',
                                               class: 'js-formatic-search__query-input' %>
                 <% if clear? %>
-                  <div class="c-formatic-search__clear">
+                  <div class="c-formatic-search__clear js-formatic-search__clear">
                     <%= clear %>
                   </div>
                 <% end %>

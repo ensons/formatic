@@ -1,69 +1,179 @@
-import { SearchRequest } from 'formatic/search_request';
-import { SearchResults } from 'formatic/search_results';
-import { SearchSelection } from 'formatic/search_selection';
+import { SearchRecord } from 'formatic/search_record';
+import { SearchRequests } from 'formatic/search_requests';
 export class Search {
     constructor(el) {
         this.el = el;
-        this.queryInput = el.querySelector('.js-formatic-search__query-input');
-        this.addRecordContainer = el.querySelector('.js-formatic-search__add-record');
-        this.request = new SearchRequest(el);
-        this.selection = new SearchSelection(this.queryInput, el.querySelector('.js-formatic-search__value'), el.querySelector('.js-formatic-search__selected'));
-        this.results = new SearchResults(el.querySelector('.js-formatic-search__results'), (record) => this.chooseRecord(record));
+        this.requests = new SearchRequests;
+        this.choiceRecords = new Map();
         this.setupBindings();
     }
     setupBindings() {
-        this.queryInput.addEventListener('input', () => this.search());
-        this.el.addEventListener('click', (event) => this.onClick(event));
-    }
-    onClick(event) {
-        if (!(event.target instanceof Element))
-            return;
-        if (!event.target.closest('.js-formatic-search__clear'))
-            return;
-        event.preventDefault();
-        this.clearSelection();
-    }
-    search() {
-        clearTimeout(this.timeoutId);
-        this.request.cancel();
-        const query = this.queryInput.value.trim();
-        this.addRecordContainer.hidden = true;
-        if (!query) {
-            this.results.clear();
-            return;
-        }
-        this.results.showStatus('Waiting for input...');
-        this.timeoutId = setTimeout(() => this.searchNow(query), 400);
-    }
-    async searchNow(query) {
-        this.results.showStatus('Searching...');
-        try {
-            const records = await this.request.search(query);
-            if (query !== this.queryInput.value.trim())
+        this.resultsContainer.addEventListener('click', (event) => {
+            const receiver = event.target;
+            const choice = receiver.closest('.js-formatic-search__choice');
+            if (!choice)
                 return;
-            this.results.show(records);
-            this.addRecordContainer.hidden = false;
+            event.preventDefault();
+            this.actionChoose(choice);
+        });
+        this.clearContainer?.addEventListener('click', (event) => {
+            event.preventDefault();
+            this.actionClear();
+        });
+        this.queryInput.addEventListener('input', (event) => {
+            event.preventDefault();
+            this.actionSearch();
+        });
+    }
+    debounce(fn) {
+        return () => {
+            clearTimeout(this.timeoutId);
+            this.timeoutId = setTimeout(() => fn(), 400);
+        };
+    }
+    actionSearch() {
+        this.guiWaitingForQuery();
+        this.debounce(this.actionSearchNow.bind(this))();
+    }
+    actionSearchNow() {
+        if (this.queryInput.value.length == 0) {
+            this.resultsContainer.innerHTML = '';
+            return;
         }
-        catch (error) {
-            if (error.name === 'AbortError')
+        this.guiSearchingRecords();
+        this.requests.search(this.resourceUrl, this.queryInput.value, this.searchParams)
+            .then(result => {
+            if (result?.query != this.queryInput.value)
                 return;
-            console.warn(`[Formatic] Search failed: ${error}`);
-            this.results.showStatus('Search failed.');
+            return result.data.records.map((attributes) => new SearchRecord(attributes));
+        }).then(records => {
+            if (records)
+                this.guiPopulateRecordChoices(records);
+        }).catch(err => {
+            console.warn(`Finding records failed: ${err}`);
+            this.guiFailed();
+        });
+    }
+    actionChoose(choice) {
+        clearTimeout(this.timeoutId);
+        this.requests.abort();
+        const record = this.choiceRecords.get(choice);
+        if (!record)
+            throw new Error('No search result for the chosen element');
+        this.guiChooseRecord(record);
+    }
+    actionClear() {
+        clearTimeout(this.timeoutId);
+        this.requests.abort();
+        this.guiClear();
+    }
+    guiWaitingForQuery() {
+        this.resultsContainer.textContent = 'Waiting for input...';
+        this.guiMayNotAddNew();
+    }
+    guiSearchingRecords() {
+        this.resultsContainer.textContent = 'Searching...';
+        this.guiMayNotAddNew();
+    }
+    guiFailed() {
+        this.choiceRecords.clear();
+        this.resultsContainer.textContent = 'Search failed.';
+        this.guiMayNotAddNew();
+    }
+    guiPopulateRecordChoices(records) {
+        this.resultsContainer.innerHTML = records.map((record) => record.htmlForAutocomplete).join('');
+        this.choiceRecords = this.choicesFor(records);
+        if (records.length == 0)
+            this.resultsContainer.textContent = 'No records found.';
+        this.guiMayAddNew();
+    }
+    guiChooseRecord(record) {
+        this.valueInput.value = record.recordId;
+        this.selectedContainer.innerHTML = record.htmlForInput;
+        this.resultsContainer.innerHTML = '';
+        this.queryInput.value = '';
+        this.choiceRecords.clear();
+        this.guiMayNotAddNew();
+        this.notifyValueChanged();
+    }
+    guiClear() {
+        this.valueInput.value = '';
+        this.selectedContainer.innerHTML = '';
+        this.resultsContainer.innerHTML = '';
+        this.queryInput.value = '';
+        this.choiceRecords.clear();
+        this.guiMayNotAddNew();
+        this.notifyValueChanged();
+    }
+    guiMayAddNew() {
+        this.addRecordContainer.hidden = false;
+    }
+    guiMayNotAddNew() {
+        this.addRecordContainer.hidden = true;
+    }
+    notifyValueChanged() {
+        this.valueInput.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    choicesFor(records) {
+        const choices = Array.from(this.choices);
+        if (choices.length != records.length) {
+            throw new Error(`Expected ${records.length} .js-formatic-search__choice elements, found ${choices.length}`);
         }
+        return new Map(choices.map((choice, index) => [choice, records[index]]));
     }
-    chooseRecord(record) {
-        clearTimeout(this.timeoutId);
-        this.request.cancel();
-        this.selection.choose(record);
-        this.results.clear();
-        this.addRecordContainer.hidden = true;
+    get searchParams() {
+        const params = {
+            record_name: this.recordName,
+            attribute_name: this.attributeName,
+        };
+        if (this.excludeIds)
+            params.exclude_ids = this.excludeIds;
+        return params;
     }
-    clearSelection() {
-        clearTimeout(this.timeoutId);
-        this.request.cancel();
-        this.selection.clear();
-        this.results.clear();
-        this.addRecordContainer.hidden = true;
+    get resourceUrl() {
+        return this.resourceInput.value;
+    }
+    get recordName() {
+        return this.recordNameInput.value;
+    }
+    get attributeName() {
+        return this.attributeNameInput.value;
+    }
+    get excludeIds() {
+        return this.excludeIdsInput.value;
+    }
+    get resourceInput() {
+        return this.el.querySelector('.js-formatic-search__resource');
+    }
+    get recordNameInput() {
+        return this.el.querySelector('.js-formatic-search__record-name');
+    }
+    get attributeNameInput() {
+        return this.el.querySelector('.js-formatic-search__attribute-name');
+    }
+    get excludeIdsInput() {
+        return this.el.querySelector('.js-formatic-search__exclude-ids');
+    }
+    get queryInput() {
+        return this.el.querySelector('.js-formatic-search__query-input');
+    }
+    get valueInput() {
+        return this.el.querySelector('.js-formatic-search__value');
+    }
+    get selectedContainer() {
+        return this.el.querySelector('.js-formatic-search__selected');
+    }
+    get resultsContainer() {
+        return this.el.querySelector('.js-formatic-search__results');
+    }
+    get choices() {
+        return this.resultsContainer.querySelectorAll('.js-formatic-search__choice');
+    }
+    get addRecordContainer() {
+        return this.el.querySelector('.js-formatic-search__add-record');
+    }
+    get clearContainer() {
+        return this.el.querySelector('.js-formatic-search__clear');
     }
 }
 //# sourceMappingURL=search.js.map

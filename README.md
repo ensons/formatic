@@ -14,10 +14,12 @@ Opinionated ViewComponents for building forms.
 `Formatic::Search` renders a hidden value input and a query input for an endpoint
 that returns JSON in the form `{ records: [...] }`. Each record has an `id`, a
 `label`, `html_for_autocomplete`, and `html_for_input` properties. The
-`html_for_autocomplete` markup must include a `.js-formatic-search__choice`
-element with a `data-record-id`; `html_for_input` provides the selected-value
-markup. Search waits 400 ms after input and cancels an in-flight request when
-the query changes. An optional `with_clear` slot clears the current selection.
+`html_for_autocomplete` markup must include one `.js-formatic-search__choice`
+element per record, in the same order as `records`. `html_for_input` provides
+the selected-value markup. Search waits 400 ms after the last input. A newer
+query aborts the previous request for that field, and a response is shown only
+when its query still matches the input. An optional `with_clear` slot clears
+the current selection.
 An optional `with_add_record` slot stays hidden while searching and appears
 after a successful response, even when there are no matches.
 

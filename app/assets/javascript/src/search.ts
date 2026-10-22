@@ -1,91 +1,231 @@
-import { SearchRecord, SearchRequest } from 'formatic/search_request'
-import { SearchResults } from 'formatic/search_results'
-import { SearchSelection } from 'formatic/search_selection'
+import { SearchRecord } from 'formatic/search_record'
+import { SearchRequests } from 'formatic/search_requests'
 
 export class Search {
-  private queryInput: HTMLInputElement
-  private addRecordContainer: HTMLElement
-  private request: SearchRequest
-  private results: SearchResults
-  private selection: SearchSelection
+  private el: HTMLElement
+  private requests: SearchRequests
+  private choiceRecords: Map<HTMLElement, SearchRecord>
   private timeoutId: ReturnType<typeof setTimeout>
 
-  constructor(private el: HTMLElement) {
-    this.queryInput = el.querySelector('.js-formatic-search__query-input')
-    this.addRecordContainer = el.querySelector('.js-formatic-search__add-record')
-    this.request = new SearchRequest(el)
-    this.selection = new SearchSelection(
-      this.queryInput,
-      el.querySelector('.js-formatic-search__value'),
-      el.querySelector('.js-formatic-search__selected')
-    )
-    this.results = new SearchResults(
-      el.querySelector('.js-formatic-search__results'),
-      (record) => this.chooseRecord(record)
-    )
-
+  constructor(el: HTMLElement) {
+    this.el = el
+    this.requests = new SearchRequests
+    this.choiceRecords = new Map()
     this.setupBindings()
   }
 
+  // Setup
+
   private setupBindings() {
-    this.queryInput.addEventListener('input', () => this.search())
-    this.el.addEventListener('click', (event) => this.onClick(event))
+    this.resultsContainer.addEventListener('click', (event) => {
+      const receiver = <HTMLElement>event.target
+      const choice = receiver.closest<HTMLElement>('.js-formatic-search__choice')
+      if (!choice) return
+
+      event.preventDefault()
+      this.actionChoose(choice)
+    })
+
+    this.clearContainer?.addEventListener('click', (event) => {
+      event.preventDefault()
+      this.actionClear()
+    })
+
+    this.queryInput.addEventListener('input', (event) => {
+      event.preventDefault()
+      this.actionSearch()
+    })
   }
 
-  private onClick(event: MouseEvent) {
-    if (!(event.target instanceof Element)) return
-    if (!event.target.closest('.js-formatic-search__clear')) return
+  // Helpers
 
-    event.preventDefault()
-    this.clearSelection()
+  private debounce(fn: Function) {
+    return () => {
+      clearTimeout(this.timeoutId)
+      this.timeoutId = setTimeout(() => fn(), 400)
+    }
   }
 
-  private search() {
-    clearTimeout(this.timeoutId)
-    this.request.cancel()
+  // Actions
 
-    const query = this.queryInput.value.trim()
-    this.addRecordContainer.hidden = true
+  private actionSearch() {
+    this.guiWaitingForQuery()
+    this.debounce(this.actionSearchNow.bind(this))()
+  }
 
-    if (!query) {
-      this.results.clear()
+  private actionSearchNow() {
+    if (this.queryInput.value.length == 0) {
+      this.resultsContainer.innerHTML = ''
       return
     }
 
-    this.results.showStatus('Waiting for input...')
-    this.timeoutId = setTimeout(() => this.searchNow(query), 400)
+    this.guiSearchingRecords()
+    this.requests.search(this.resourceUrl, this.queryInput.value, this.searchParams)
+      .then(result => {
+        // On multiple parallel ajax requests, the currently wanted response wins.
+        if (result?.query != this.queryInput.value) return
+
+        return result.data.records.map((attributes: any) => new SearchRecord(attributes))
+      }).then(records => {
+        if (records) this.guiPopulateRecordChoices(records)
+      }).catch(err => {
+        console.warn(`Finding records failed: ${err}`)
+        this.guiFailed()
+      })
   }
 
-  private async searchNow(query: string) {
-    this.results.showStatus('Searching...')
+  private actionChoose(choice: HTMLElement) {
+    clearTimeout(this.timeoutId)
+    this.requests.abort()
 
-    try {
-      const records = await this.request.search(query)
-      if (query !== this.queryInput.value.trim()) return
+    const record = this.choiceRecords.get(choice)
+    if (!record) throw new Error('No search result for the chosen element')
 
-      this.results.show(records)
-      this.addRecordContainer.hidden = false
-    } catch (error) {
-      if (error.name === 'AbortError') return
+    this.guiChooseRecord(record)
+  }
 
-      console.warn(`[Formatic] Search failed: ${error}`)
-      this.results.showStatus('Search failed.')
+  private actionClear() {
+    clearTimeout(this.timeoutId)
+    this.requests.abort()
+    this.guiClear()
+  }
+
+  // GUI
+
+  private guiWaitingForQuery() {
+    this.resultsContainer.textContent = 'Waiting for input...'
+    this.guiMayNotAddNew()
+  }
+
+  private guiSearchingRecords() {
+    this.resultsContainer.textContent = 'Searching...'
+    this.guiMayNotAddNew()
+  }
+
+  private guiFailed() {
+    this.choiceRecords.clear()
+    this.resultsContainer.textContent = 'Search failed.'
+    this.guiMayNotAddNew()
+  }
+
+  private guiPopulateRecordChoices(records: Array<SearchRecord>) {
+    this.resultsContainer.innerHTML = records.map((record) => record.htmlForAutocomplete).join('')
+    this.choiceRecords = this.choicesFor(records)
+    if (records.length == 0) this.resultsContainer.textContent = 'No records found.'
+    this.guiMayAddNew()
+  }
+
+  private guiChooseRecord(record: SearchRecord) {
+    this.valueInput.value = record.recordId
+    this.selectedContainer.innerHTML = record.htmlForInput
+    this.resultsContainer.innerHTML = ''
+    this.queryInput.value = ''
+    this.choiceRecords.clear()
+    this.guiMayNotAddNew()
+    this.notifyValueChanged()
+  }
+
+  private guiClear() {
+    this.valueInput.value = ''
+    this.selectedContainer.innerHTML = ''
+    this.resultsContainer.innerHTML = ''
+    this.queryInput.value = ''
+    this.choiceRecords.clear()
+    this.guiMayNotAddNew()
+    this.notifyValueChanged()
+  }
+
+  private guiMayAddNew() {
+    this.addRecordContainer.hidden = false
+  }
+
+  private guiMayNotAddNew() {
+    this.addRecordContainer.hidden = true
+  }
+
+  private notifyValueChanged() {
+    this.valueInput.dispatchEvent(new Event('change', { bubbles: true }))
+  }
+
+  private choicesFor(records: Array<SearchRecord>) {
+    const choices = Array.from(this.choices)
+    if (choices.length != records.length) {
+      throw new Error(`Expected ${records.length} .js-formatic-search__choice elements, found ${choices.length}`)
     }
+
+    return new Map(choices.map((choice, index) => [choice, records[index]]))
   }
 
-  private chooseRecord(record: SearchRecord) {
-    clearTimeout(this.timeoutId)
-    this.request.cancel()
-    this.selection.choose(record)
-    this.results.clear()
-    this.addRecordContainer.hidden = true
+  // Attributes
+
+  private get searchParams() {
+    const params: { [key: string]: string } = {
+      record_name: this.recordName,
+      attribute_name: this.attributeName,
+    }
+    if (this.excludeIds) params.exclude_ids = this.excludeIds
+    return params
   }
 
-  private clearSelection() {
-    clearTimeout(this.timeoutId)
-    this.request.cancel()
-    this.selection.clear()
-    this.results.clear()
-    this.addRecordContainer.hidden = true
+  private get resourceUrl() {
+    return this.resourceInput.value
+  }
+
+  private get recordName() {
+    return this.recordNameInput.value
+  }
+
+  private get attributeName() {
+    return this.attributeNameInput.value
+  }
+
+  private get excludeIds() {
+    return this.excludeIdsInput.value
+  }
+
+  // DOM elements
+
+  private get resourceInput() {
+    return this.el.querySelector<HTMLInputElement>('.js-formatic-search__resource')
+  }
+
+  private get recordNameInput() {
+    return this.el.querySelector<HTMLInputElement>('.js-formatic-search__record-name')
+  }
+
+  private get attributeNameInput() {
+    return this.el.querySelector<HTMLInputElement>('.js-formatic-search__attribute-name')
+  }
+
+  private get excludeIdsInput() {
+    return this.el.querySelector<HTMLInputElement>('.js-formatic-search__exclude-ids')
+  }
+
+  private get queryInput() {
+    return this.el.querySelector<HTMLInputElement>('.js-formatic-search__query-input')
+  }
+
+  private get valueInput() {
+    return this.el.querySelector<HTMLInputElement>('.js-formatic-search__value')
+  }
+
+  private get selectedContainer() {
+    return this.el.querySelector<HTMLElement>('.js-formatic-search__selected')
+  }
+
+  private get resultsContainer() {
+    return this.el.querySelector<HTMLElement>('.js-formatic-search__results')
+  }
+
+  private get choices() {
+    return this.resultsContainer.querySelectorAll<HTMLElement>('.js-formatic-search__choice')
+  }
+
+  private get addRecordContainer() {
+    return this.el.querySelector<HTMLElement>('.js-formatic-search__add-record')
+  }
+
+  private get clearContainer() {
+    return this.el.querySelector<HTMLElement>('.js-formatic-search__clear')
   }
 }
