@@ -1,5 +1,6 @@
 import { Date } from 'formatic/date'
 import { Select } from 'formatic/select'
+import { Search } from 'formatic/search'
 import { Stepper } from 'formatic/stepper'
 import { String } from 'formatic/string'
 import { Textarea } from 'formatic/textarea'
@@ -7,6 +8,11 @@ import { Toggle } from 'formatic/toggle'
 import { FormaticFile } from 'formatic/file'
 
 document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.js-formatic-search').forEach((el) => {
+    console.debug('[Formatic] Instantiating Search...')
+    new Search(el)
+  })
+
   document.querySelectorAll('.js-formatic-file').forEach((el) => {
     console.debug('[Formatic] Instantiating File...')
     new FormaticFile(el)

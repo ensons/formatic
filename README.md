@@ -9,6 +9,31 @@ Opinionated ViewComponents for building forms.
 = render Formatic::String.new(f:, attribute_name: :first_name)
 ```
 
+### Search fields
+
+`Formatic::Search` renders a hidden value input and a query input for an endpoint
+that returns JSON in the form `{ records: [...] }`. Each record has an `id`, a
+`label`, `html_for_autocomplete`, and `html_for_input` properties. The
+`html_for_autocomplete` markup must include one `.js-formatic-search__choice`
+element per record, in the same order as `records`. `html_for_input` provides
+the selected-value markup. Search waits 400 ms after the last input. A newer
+query aborts the previous request for that field, and a response is shown only
+when its query still matches the input. An optional `with_clear` slot clears
+the current selection.
+An optional `with_add_record` slot stays hidden while searching and appears
+after a successful response, even when there are no matches.
+
+```ruby
+= render Formatic::Search.new(f:, attribute_name: :commander_id,
+                              record_name: 'commander',
+                              url: admin_commanders_path(format: :json))
+```
+
+For Rack tests, include `Formatic::Testing::Capybara::Search` in a
+`Capybara::RackTest` test class. `select_record_from_search 'Bob', from: 'Users'`
+reads the field's URL and parameter names, requests matching JSON directly, and
+fills the hidden input with a result returned by that endpoint.
+
 ## Installation
 
 Install the gem and add to the application's Gemfile by executing:
